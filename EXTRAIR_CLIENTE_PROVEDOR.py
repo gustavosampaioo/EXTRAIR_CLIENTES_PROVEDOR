@@ -78,28 +78,31 @@ def gerar_kml(df):
         if coordenada:
             placemarks_count += 1
             
-            # Extrair informações das colunas
-            cliente = str(row.iloc[0]) if pd.notna(row.iloc[0]) else ''
+            # Extrair informações das colunas (A até E)
+            cliente = str(row.iloc[0]) if len(row) > 0 and pd.notna(row.iloc[0]) else ''
             estado = str(row.iloc[1]) if len(row) > 1 and pd.notna(row.iloc[1]) else ''
             cidade = str(row.iloc[2]) if len(row) > 2 and pd.notna(row.iloc[2]) else ''
             bairro = str(row.iloc[3]) if len(row) > 3 and pd.notna(row.iloc[3]) else ''
             endereco = str(row.iloc[4]) if len(row) > 4 and pd.notna(row.iloc[4]) else ''
             
-            # Processar equipamento (coluna G)
-            equipamento_raw = row.iloc[6] if len(row) > 6 else ''
+            # RX Signal (coluna G)
+            rx_signal = str(row.iloc[6]) if len(row) > 6 and pd.notna(row.iloc[6]) else ''
+            
+            # Processar equipamento (coluna H)
+            equipamento_raw = row.iloc[7] if len(row) > 7 else ''
             equipamento_nome = extrair_nome_equipamento(equipamento_raw)
             
-            # Processar SLOT / PORT (coluna H)
-            slot_port_raw = row.iloc[7] if len(row) > 7 else ''
+            # Processar SLOT / PORT (coluna I)
+            slot_port_raw = row.iloc[8] if len(row) > 8 else ''
             slot_port = extrair_slot_port(slot_port_raw)
             
-            # Status (coluna I)
-            status = str(row.iloc[8]) if len(row) > 8 and pd.notna(row.iloc[8]) else ''
+            # Status (coluna J)
+            status = str(row.iloc[9]) if len(row) > 9 and pd.notna(row.iloc[9]) else ''
             
-            # Nome do placemark
+            # Nome do placemark (Equipamento + SLOT/PORT)
             placemark_name = f"{equipamento_nome} - {slot_port}"
             
-            # Descrição do placemark
+            # Descrição do placemark com todas as informações
             description = f"""
             <![CDATA[
             <table style="font-family: Arial, sans-serif; border-collapse: collapse; width: 100%;">
@@ -108,6 +111,7 @@ def gerar_kml(df):
                 <tr><td style="padding: 5px; background-color: #f2f2f2;"><b>Cidade:</b></td><td style="padding: 5px;">{cidade}</td></tr>
                 <tr><td style="padding: 5px; background-color: #f2f2f2;"><b>Bairro:</b></td><td style="padding: 5px;">{bairro}</td></tr>
                 <tr><td style="padding: 5px; background-color: #f2f2f2;"><b>Endereço:</b></td><td style="padding: 5px;">{endereco}</td></tr>
+                <tr><td style="padding: 5px; background-color: #f2f2f2;"><b>RX Signal:</b></td><td style="padding: 5px;">{rx_signal}</td></tr>
                 <tr><td style="padding: 5px; background-color: #f2f2f2;"><b>Equipamento:</b></td><td style="padding: 5px;">{equipamento_nome}</td></tr>
                 <tr><td style="padding: 5px; background-color: #f2f2f2;"><b>SLOT/PORT:</b></td><td style="padding: 5px;">{slot_port}</td></tr>
                 <tr><td style="padding: 5px; background-color: #f2f2f2;"><b>Status:</b></td><td style="padding: 5px;">{status}</td></tr>
@@ -156,9 +160,10 @@ def main():
         - **Coluna D**: Bairro
         - **Coluna E**: Endereço
         - **Coluna F**: Coordenada (formato: -5.129502 -42.781442)
-        - **Coluna G**: Equipamento (ex: PS - 10.252.0.2)
-        - **Coluna H**: SLOT / PORT (ex: [GPON] SLOT 16 - PON 15 - 1/16/15)
-        - **Coluna I**: Status
+        - **Coluna G**: RX Signal (ex: -25.5 dBm)
+        - **Coluna H**: Equipamento (ex: PS - 10.252.0.2)
+        - **Coluna I**: SLOT / PORT (ex: [GPON] SLOT 16 - PON 15 - 1/16/15)
+        - **Coluna J**: Status
     3. Clique em "Gerar KML" para fazer o download
     """)
     
@@ -173,12 +178,17 @@ def main():
     
     if uploaded_file is not None:
         try:
-            # Ler o arquivo Excel
+            # Ler o arquivo Excel sem cabeçalho
             df = pd.read_excel(uploaded_file, header=None)
             
             # Mostrar preview dos dados
             st.subheader("📊 Preview dos dados (primeiras 5 linhas)")
-            st.dataframe(df.head(5))
+            
+            # Criar um DataFrame com cabeçalhos para melhor visualização
+            preview_df = df.head(5).copy()
+            preview_df.columns = ['Cliente', 'Estado', 'Cidade', 'Bairro', 'Endereço', 
+                                 'Coordenada', 'RX Signal', 'Equipamento', 'SLOT/PORT', 'Status']
+            st.dataframe(preview_df)
             
             # Mostrar número de linhas
             st.info(f"Total de linhas no arquivo: {len(df)}")
@@ -206,9 +216,10 @@ def main():
                     # Nome do arquivo
                     filename = "pontos_equipamentos.kml"
                     
-                    # Botão de download
+                    # Mensagem de sucesso
                     st.success(f"✅ KML gerado com sucesso! {placemarks_count} placemarks criados.")
                     
+                    # Botão de download
                     st.download_button(
                         label="📥 Download KML",
                         data=kml_bytes,
@@ -222,17 +233,25 @@ def main():
             st.exception(e)
     
     st.markdown("---")
-    st.markdown("### 📝 Exemplo de formato das colunas:")
-    st.code("""
-Coluna A: Cliente          → "João Silva"
-Coluna B: Estado           → "PI"
-Coluna C: Cidade           → "Teresina"
-Coluna D: Bairro           → "Centro"
-Coluna E: Endereço         → "Rua Principal, 123"
-Coluna F: Coordenada       → "-5.129502 -42.781442"
-Coluna G: Equipamento      → "PS - 10.252.0.2"          → Será extraído: "PS"
-Coluna H: SLOT / PORT      → "[GPON] SLOT 16 - PON 15 - 1/16/15" → Será extraído: "1/16/15"
-Coluna I: Status           → "ATIVO"
+    st.markdown("### 📝 Exemplo do formato das colunas (ordem correta):")
+    
+    # Criar um DataFrame de exemplo para mostrar a ordem das colunas
+    exemplo_data = {
+        'Coluna': ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'],
+        'Campo': ['Cliente', 'Estado', 'Cidade', 'Bairro', 'Endereço', 'Coordenada', 
+                 'RX Signal', 'Equipamento', 'SLOT/PORT', 'Status'],
+        'Exemplo': ['João Silva', 'PI', 'Teresina', 'Centro', 'Rua Principal, 123', 
+                   '-5.129502 -42.781442', '-25.5 dBm', 'PS - 10.252.0.2', 
+                   '[GPON] SLOT 16 - PON 15 - 1/16/15', 'ATIVO']
+    }
+    exemplo_df = pd.DataFrame(exemplo_data)
+    st.dataframe(exemplo_df, use_container_width=True)
+    
+    st.markdown("""
+    **Observações:**
+    - O nome do placemark será formado por: `Equipamento - SLOT/PORT` (ex: PS - 1/16/15)
+    - A coordenada deve estar no formato: `latitude longitude` (ex: -5.129502 -42.781442)
+    - Todas as informações serão incluídas na descrição do ponto no KML
     """)
 
 if __name__ == "__main__":
