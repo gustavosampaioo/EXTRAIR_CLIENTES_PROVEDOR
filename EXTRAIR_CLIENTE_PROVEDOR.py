@@ -22,20 +22,20 @@ def processar_coordenada(coord_str):
         return None
     return None
 
-def extrair_nome_equipamento(equipamento):
-    """Extrai o texto antes do ' - ' da coluna Equipamento"""
+def extrair_nome_equipamento(ipv4):
+    """Extrai o texto antes do ' - ' da coluna Ipv4"""
     try:
-        if pd.notna(equipamento) and ' - ' in str(equipamento):
-            return str(equipamento).split(' - ')[0].strip()
+        if pd.notna(ipv4) and ' - ' in str(ipv4):
+            return str(ipv4).split(' - ')[0].strip()
     except:
         pass
-    return str(equipamento) if pd.notna(equipamento) else ''
+    return str(ipv4) if pd.notna(ipv4) else ''
 
-def extrair_slot_port(slot_port):
-    """Extrai apenas a parte final 1/16/15 da coluna SLOT / PORT"""
+def extrair_interface_conexao(interface):
+    """Extrai apenas a parte final 1/16/15 da coluna Interface Conexão"""
     try:
-        if pd.notna(slot_port):
-            texto = str(slot_port)
+        if pd.notna(interface):
+            texto = str(interface)
             # Procura por padrão de números separados por /
             padrao = r'(\d+/\d+/\d+)'
             match = re.search(padrao, texto)
@@ -43,7 +43,7 @@ def extrair_slot_port(slot_port):
                 return match.group(1)
     except:
         pass
-    return str(slot_port) if pd.notna(slot_port) else ''
+    return str(interface) if pd.notna(interface) else ''
 
 def gerar_kml(df):
     """Gera o conteúdo KML a partir do DataFrame"""
@@ -72,35 +72,35 @@ def gerar_kml(df):
     
     # Processar cada linha do DataFrame
     for idx, row in df.iterrows():
-        # Processar coordenada da coluna F
-        coordenada = processar_coordenada(row.iloc[5] if len(row) > 5 else None)
+        # Processar coordenada da coluna G (índice 6)
+        coordenada = processar_coordenada(row.iloc[6] if len(row) > 6 else None)
         
         if coordenada:
             placemarks_count += 1
             
-            # Extrair informações das colunas (A até E)
+            # Extrair informações das colunas (A até F)
             cliente = str(row.iloc[0]) if len(row) > 0 and pd.notna(row.iloc[0]) else ''
             estado = str(row.iloc[1]) if len(row) > 1 and pd.notna(row.iloc[1]) else ''
             cidade = str(row.iloc[2]) if len(row) > 2 and pd.notna(row.iloc[2]) else ''
             bairro = str(row.iloc[3]) if len(row) > 3 and pd.notna(row.iloc[3]) else ''
             endereco = str(row.iloc[4]) if len(row) > 4 and pd.notna(row.iloc[4]) else ''
             
-            # RX Signal (coluna G)
-            rx_signal = str(row.iloc[6]) if len(row) > 6 and pd.notna(row.iloc[6]) else ''
+            # Login (coluna F - índice 5)
+            login = str(row.iloc[5]) if len(row) > 5 and pd.notna(row.iloc[5]) else ''
             
-            # Processar equipamento (coluna H)
-            equipamento_raw = row.iloc[7] if len(row) > 7 else ''
-            equipamento_nome = extrair_nome_equipamento(equipamento_raw)
+            # Interface Conexão (coluna H - índice 7)
+            interface_raw = row.iloc[7] if len(row) > 7 else ''
+            interface_conexao = extrair_interface_conexao(interface_raw)
             
-            # Processar SLOT / PORT (coluna I)
-            slot_port_raw = row.iloc[8] if len(row) > 8 else ''
-            slot_port = extrair_slot_port(slot_port_raw)
+            # Processar Ipv4 (coluna I - índice 8)
+            ipv4_raw = row.iloc[8] if len(row) > 8 else ''
+            ipv4_nome = extrair_nome_equipamento(ipv4_raw)
             
-            # Status (coluna J)
-            status = str(row.iloc[9]) if len(row) > 9 and pd.notna(row.iloc[9]) else ''
+            # RX Signal (coluna J - índice 9)
+            rx_signal = str(row.iloc[9]) if len(row) > 9 and pd.notna(row.iloc[9]) else ''
             
-            # Nome do placemark (Equipamento + SLOT/PORT)
-            placemark_name = f"{equipamento_nome} - {slot_port}"
+            # Nome do placemark (Ipv4 + Interface Conexão)
+            placemark_name = f"{ipv4_nome} - {interface_conexao}"
             
             # Descrição do placemark com todas as informações
             description = f"""
@@ -111,10 +111,10 @@ def gerar_kml(df):
                 <tr><td style="padding: 5px; background-color: #f2f2f2;"><b>Cidade:</b></td><td style="padding: 5px;">{cidade}</td></tr>
                 <tr><td style="padding: 5px; background-color: #f2f2f2;"><b>Bairro:</b></td><td style="padding: 5px;">{bairro}</td></tr>
                 <tr><td style="padding: 5px; background-color: #f2f2f2;"><b>Endereço:</b></td><td style="padding: 5px;">{endereco}</td></tr>
+                <tr><td style="padding: 5px; background-color: #f2f2f2;"><b>Login:</b></td><td style="padding: 5px;">{login}</td></tr>
+                <tr><td style="padding: 5px; background-color: #f2f2f2;"><b>Interface Conexão:</b></td><td style="padding: 5px;">{interface_conexao}</td></tr>
+                <tr><td style="padding: 5px; background-color: #f2f2f2;"><b>Ipv4:</b></td><td style="padding: 5px;">{ipv4_nome}</td></tr>
                 <tr><td style="padding: 5px; background-color: #f2f2f2;"><b>RX Signal:</b></td><td style="padding: 5px;">{rx_signal}</td></tr>
-                <tr><td style="padding: 5px; background-color: #f2f2f2;"><b>Equipamento:</b></td><td style="padding: 5px;">{equipamento_nome}</td></tr>
-                <tr><td style="padding: 5px; background-color: #f2f2f2;"><b>SLOT/PORT:</b></td><td style="padding: 5px;">{slot_port}</td></tr>
-                <tr><td style="padding: 5px; background-color: #f2f2f2;"><b>Status:</b></td><td style="padding: 5px;">{status}</td></tr>
             </table>
             ]]>
             """
@@ -159,11 +159,11 @@ def main():
         - **Coluna C**: Cidade
         - **Coluna D**: Bairro
         - **Coluna E**: Endereço
-        - **Coluna F**: Coordenada (formato: -5.129502 -42.781442)
-        - **Coluna G**: RX Signal (ex: -25.5 dBm)
-        - **Coluna H**: Equipamento (ex: PS - 10.252.0.2)
-        - **Coluna I**: SLOT / PORT (ex: [GPON] SLOT 16 - PON 15 - 1/16/15)
-        - **Coluna J**: Status
+        - **Coluna F**: Login
+        - **Coluna G**: Coordenada (formato: -5.129502 -42.781442)
+        - **Coluna H**: Interface Conexão (ex: [GPON] SLOT 16 - PON 15 - 1/16/15)
+        - **Coluna I**: Ipv4 (ex: PS - 10.252.0.2)
+        - **Coluna J**: RX Signal (ex: -25.5 dBm)
     3. Clique em "Gerar KML" para fazer o download
     """)
     
@@ -187,20 +187,20 @@ def main():
             # Criar um DataFrame com cabeçalhos para melhor visualização
             preview_df = df.head(5).copy()
             preview_df.columns = ['Cliente', 'Estado', 'Cidade', 'Bairro', 'Endereço', 
-                                 'Coordenada', 'RX Signal', 'Equipamento', 'SLOT/PORT', 'Status']
+                                 'Login', 'Coordenada', 'Interface Conexão', 'Ipv4', 'RX Signal']
             st.dataframe(preview_df)
             
             # Mostrar número de linhas
             st.info(f"Total de linhas no arquivo: {len(df)}")
             
-            # Verificar se há coordenadas válidas
+            # Verificar se há coordenadas válidas na coluna G (índice 6)
             coordenadas_validas = 0
             for idx, row in df.iterrows():
-                if len(row) > 5 and processar_coordenada(row.iloc[5]):
+                if len(row) > 6 and processar_coordenada(row.iloc[6]):
                     coordenadas_validas += 1
             
             if coordenadas_validas == 0:
-                st.warning("⚠️ Nenhuma coordenada válida encontrada na coluna F. Verifique o formato das coordenadas.")
+                st.warning("⚠️ Nenhuma coordenada válida encontrada na coluna G. Verifique o formato das coordenadas.")
             else:
                 st.success(f"✅ {coordenadas_validas} coordenadas válidas encontradas")
             
@@ -238,20 +238,20 @@ def main():
     # Criar um DataFrame de exemplo para mostrar a ordem das colunas
     exemplo_data = {
         'Coluna': ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'],
-        'Campo': ['Cliente', 'Estado', 'Cidade', 'Bairro', 'Endereço', 'Coordenada', 
-                 'RX Signal', 'Equipamento', 'SLOT/PORT', 'Status'],
+        'Campo': ['Cliente', 'Estado', 'Cidade', 'Bairro', 'Endereço', 'Login', 
+                 'Coordenada', 'Interface Conexão', 'Ipv4', 'RX Signal'],
         'Exemplo': ['João Silva', 'PI', 'Teresina', 'Centro', 'Rua Principal, 123', 
-                   '-5.129502 -42.781442', '-25.5 dBm', 'PS - 10.252.0.2', 
-                   '[GPON] SLOT 16 - PON 15 - 1/16/15', 'ATIVO']
+                   'joao.silva', '-5.129502 -42.781442', '[GPON] SLOT 16 - PON 15 - 1/16/15', 
+                   'PS - 10.252.0.2', '-25.5 dBm']
     }
     exemplo_df = pd.DataFrame(exemplo_data)
     st.dataframe(exemplo_df, use_container_width=True)
     
     st.markdown("""
     **Observações:**
-    - O nome do placemark será formado por: `Equipamento - SLOT/PORT` (ex: PS - 1/16/15)
+    - O nome do placemark será formado por: `Ipv4 - Interface Conexão` (ex: PS - 1/16/15)
     - A coordenada deve estar no formato: `latitude longitude` (ex: -5.129502 -42.781442)
-    - Todas as informações serão incluídas na descrição do ponto no KML
+    - Todas as informações (Cliente, Estado, Cidade, Bairro, Endereço, Login, Interface Conexão, Ipv4 e RX Signal) serão incluídas na descrição do ponto no KML
     """)
 
 if __name__ == "__main__":
